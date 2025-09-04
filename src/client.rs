@@ -6,7 +6,9 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum HydrusError {
     #[error("failed to connect to Hydrus")]
-    Unavaliable(ureq::Error),
+    NetworkError(ureq::Error),
+    #[error("failed to deserialize data")]
+    DeserializeError(ureq::Error),
 }
 
 type Result<T> = std::result::Result<T, HydrusError>;
@@ -114,7 +116,7 @@ impl HydrusClient {
         &self,
         name: String,
         permissions: &[HydrusPermissions],
-    ) -> Result<String, ureq::Error> {
+    ) -> Result<String> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("/request_new_permissions?name=");
         req_url.push_str(&name);
@@ -123,20 +125,26 @@ impl HydrusClient {
             req_url.push_str("&permit_everything=true");
         } else {
             req_url.push_str("&basic_permissions=");
-            let json_string = serde_json::to_string(&json!(permissions))?;
-            let encoded = urlencoding::encode(&json_string);
-            req_url.push_str(&encoded);
+            let json_string = serde_json::to_string(&json!(permissions)).unwrap();
+            req_url.push_str(&urlencoding::encode(&json_string));
         };
 
-        let respose = ureq::get(req_url)
-            .call()?
-            .body_mut()
-            .read_json::<AccessKey>()?;
+        let response = ureq::get(req_url).call();
 
-        Ok(respose.access_key)
+        if let Err(error) = response {
+            return Err(HydrusError::NetworkError(error));
+        }
+
+        let key = response.unwrap().body_mut().read_json::<AccessKey>();
+
+        if let Err(error) = key {
+            return Err(HydrusError::DeserializeError(error));
+        };
+
+        Ok(key.unwrap().access_key)
     }
 
-    pub fn get_session_key(&self) -> Result<String, ureq::Error> {
+    pub fn get_session_key(&self) -> Result<String> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("/session_key");
 
@@ -146,24 +154,45 @@ impl HydrusClient {
             request = request.header("Hydrus-Client-API-Access-Key", key);
         }
 
-        let respose = request.call()?.body_mut().read_json::<SessionKey>()?;
+        let response = request.call();
 
-        Ok(respose.session_key)
+        if let Err(error) = response {
+            return Err(HydrusError::NetworkError(error));
+        }
+
+        let key = response.unwrap().body_mut().read_json::<SessionKey>();
+
+        if let Err(error) = key {
+            return Err(HydrusError::DeserializeError(error));
+        }
+
+        Ok(key.unwrap().session_key)
     }
 
-    pub fn verify_access_key(&self, key: String) -> Result<KeyInfo, ureq::Error> {
+    pub fn verify_access_key(&self, key: String) -> Result<KeyInfo> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("/verify_access_key");
-        ureq::get(req_url)
+        let response = ureq::get(req_url)
             .header("Hydrus-Client-API-Access-Key", key)
-            .call()?
-            .body_mut()
-            .read_json::<KeyInfo>()
+            .call();
+
+        if let Err(error) = response {
+            return Err(HydrusError::NetworkError(error));
+        }
+
+        let data = response.unwrap().body_mut().read_json::<KeyInfo>();
+
+        if let Err(error) = data {
+            return Err(HydrusError::DeserializeError(error));
+        }
+
+        Ok(data.unwrap())
     }
 
-    pub fn get_service_name(&self, name: String) -> Result<GetService, ureq::Error> {
+    pub fn get_service_name(&self, name: String) -> Result<GetService> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("/get_service?service_name=");
-        req_url.push_str(&name);
+        req_url.push_str(&urlencoding::encode(&name));
+        todo!()
     }
 }
