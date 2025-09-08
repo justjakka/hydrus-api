@@ -38,25 +38,15 @@ impl HydrusClient {
             req_url.push_str("&permit_everything=true");
         } else {
             req_url.push_str("&basic_permissions=");
-            let json_string = musli::json::to_string(&permissions).unwrap();
+            let json_string = musli::json::to_string(&permissions)?;
             req_url.push_str(&urlencoding::encode(&json_string));
         };
 
-        let response = ureq::get(req_url).call();
+        let response = ureq::get(req_url).call()?.body_mut().read_to_vec()?;
 
-        if let Err(error) = response {
-            return Err(HydrusError::NetworkError(error));
-        }
+        let key = musli::json::decode(response.as_slice())?;
 
-        let key = response.unwrap().body_mut().read_to_vec();
-
-        if let Err(error) = key {
-            return Err(HydrusError::DeserializeError(error));
-        };
-
-        let accesskey: String = musli::json::decode(key.unwrap().as_slice()).unwrap();
-
-        Ok(key.unwrap().access_key)
+        Ok(key)
     }
 
     pub fn get_session_key(&self) -> Result<String> {
@@ -69,19 +59,11 @@ impl HydrusClient {
             request = request.header("Hydrus-Client-API-Access-Key", key);
         }
 
-        let response = request.call();
+        let response = request.call()?.body_mut().read_to_vec()?;
 
-        if let Err(error) = response {
-            return Err(HydrusError::NetworkError(error));
-        }
+        let key = musli::json::decode(response.as_slice())?;
 
-        let key = response.unwrap().body_mut().read_json::<SessionKey>();
-
-        if let Err(error) = key {
-            return Err(HydrusError::DeserializeError(error));
-        }
-
-        Ok(key.unwrap().session_key)
+        Ok(key)
     }
 
     pub fn verify_access_key(&self, key: String) -> Result<KeyInfo> {
@@ -89,22 +71,16 @@ impl HydrusClient {
         req_url.push_str("/verify_access_key");
         let response = ureq::get(req_url)
             .header("Hydrus-Client-API-Access-Key", key)
-            .call();
+            .call()?
+            .body_mut()
+            .read_to_vec()?;
 
-        if let Err(error) = response {
-            return Err(HydrusError::NetworkError(error));
-        }
+        let data: KeyInfo = musli::json::decode(response.as_slice())?;
 
-        let data = response.unwrap().body_mut().read_json::<KeyInfo>();
-
-        if let Err(error) = data {
-            return Err(HydrusError::DeserializeError(error));
-        }
-
-        Ok(data.unwrap())
+        Ok(data)
     }
 
-    pub fn get_service_name(&self, name: String) -> Result<GetService> {
+    pub fn get_service_name(&self, name: String) -> Result<Service> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("/get_service?service_name=");
         req_url.push_str(&urlencoding::encode(&name));
