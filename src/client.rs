@@ -1,15 +1,4 @@
-use serde::Deserialize;
-use serde_json::json;
-use serde_repr::{Deserialize_repr, Serialize_repr};
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum HydrusError {
-    #[error("failed to connect to Hydrus")]
-    NetworkError(ureq::Error),
-    #[error("failed to deserialize data")]
-    DeserializeError(ureq::Error),
-}
+use crate::types::*;
 
 type Result<T> = std::result::Result<T, HydrusError>;
 
@@ -17,82 +6,6 @@ pub struct HydrusClient {
     apikey: Option<String>,
     sessionkey: Option<String>,
     url: String,
-}
-
-#[derive(Serialize_repr, Deserialize_repr, PartialEq, Debug)]
-#[repr(u8)]
-pub enum HydrusPermissions {
-    ImportAndEditURLs = 0,
-    ImportAndEditFiles,
-    EditFileTags,
-    SearchAndFetchFiles,
-    ManagePages,
-    ManageCookiesAndHeaders,
-    ManageDatabase,
-    EditFileNotes,
-    EditFileRelationships,
-    EditFileRatings,
-    ManagePopups,
-    EditFileTimes,
-    CommitPending,
-    SeeLocalPaths,
-}
-
-#[derive(Deserialize)]
-struct AccessKey {
-    access_key: String,
-}
-
-#[derive(Deserialize)]
-struct SessionKey {
-    session_key: String,
-}
-
-#[derive(Deserialize)]
-pub struct KeyInfo {
-    name: String,
-    permits_everything: bool,
-    basic_permissions: Vec<HydrusPermissions>,
-    human_permissions: String,
-}
-
-#[derive(Serialize_repr, Deserialize_repr, PartialEq, Debug)]
-#[repr(u8)]
-pub enum ServiceType {
-    TagRepository = 0,
-    FileRepository,
-    LocalFileDomain,
-    LocalTagDomain = 5,
-    NumericalRating,
-    BoolRating,
-    AllKnownTags = 10,
-    AllKnownFiles,
-    LocalBooru,
-    IPFS,
-    Trash,
-    AllLocalFiles,
-    FileNotes = 17,
-    ClientAPI,
-    DeletedFromAnywhere,
-    LocalUpdates,
-    AllMyFiles,
-    IncDecRating,
-    ServerAdmin = 99,
-}
-
-#[derive(Deserialize)]
-pub struct Service {
-    name: String,
-    servicetype: ServiceType,
-    type_pretty: String,
-}
-
-#[derive(Deserialize)]
-pub struct GetService {
-    name: String,
-    service_key: String,
-    servicetype: ServiceType,
-    type_pretty: String,
 }
 
 impl HydrusClient {
@@ -125,7 +38,7 @@ impl HydrusClient {
             req_url.push_str("&permit_everything=true");
         } else {
             req_url.push_str("&basic_permissions=");
-            let json_string = serde_json::to_string(&json!(permissions)).unwrap();
+            let json_string = musli::json::to_string(&permissions).unwrap();
             req_url.push_str(&urlencoding::encode(&json_string));
         };
 
@@ -135,11 +48,13 @@ impl HydrusClient {
             return Err(HydrusError::NetworkError(error));
         }
 
-        let key = response.unwrap().body_mut().read_json::<AccessKey>();
+        let key = response.unwrap().body_mut().read_to_vec();
 
         if let Err(error) = key {
             return Err(HydrusError::DeserializeError(error));
         };
+
+        let accesskey: String = musli::json::decode(key.unwrap().as_slice()).unwrap();
 
         Ok(key.unwrap().access_key)
     }

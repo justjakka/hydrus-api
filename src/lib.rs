@@ -1,12 +1,9 @@
 pub mod client;
+pub mod types;
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-
-    use crate::client::HydrusPermissions;
-
-    use super::*;
+    use crate::types::*;
 
     #[test]
     fn correct_permissions_number() {
@@ -33,7 +30,7 @@ mod tests {
             HydrusPermissions::ImportAndEditFiles,
             HydrusPermissions::SeeLocalPaths,
         ];
-        let json_string = serde_json::to_string(&json!(perms)).unwrap();
+        let json_string = musli::json::to_string(&perms).unwrap();
         let encoded = urlencoding::encode(&json_string);
 
         assert_eq!(encoded, "%5B0%2C1%2C13%5D")
