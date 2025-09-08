@@ -44,9 +44,9 @@ impl HydrusClient {
 
         let response = ureq::get(req_url).call()?.body_mut().read_to_vec()?;
 
-        let key = musli::json::decode(response.as_slice())?;
+        let key: AccessKey = musli::json::decode(response.as_slice())?;
 
-        Ok(key)
+        Ok(key.access_key)
     }
 
     pub fn get_session_key(&self) -> Result<String> {
@@ -61,9 +61,9 @@ impl HydrusClient {
 
         let response = request.call()?.body_mut().read_to_vec()?;
 
-        let key = musli::json::decode(response.as_slice())?;
+        let key: SessionKey = musli::json::decode(response.as_slice())?;
 
-        Ok(key)
+        Ok(key.session_key)
     }
 
     pub fn verify_access_key(&self, key: String) -> Result<KeyInfo> {

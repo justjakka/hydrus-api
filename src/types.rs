@@ -96,21 +96,21 @@ where
 }
 
 #[derive(Decode)]
-struct AccessKey {
-    access_key: String,
+pub struct AccessKey {
+    pub access_key: String,
 }
 
 #[derive(Decode)]
-struct SessionKey {
-    session_key: String,
+pub struct SessionKey {
+    pub session_key: String,
 }
 
 #[derive(Decode)]
 pub struct KeyInfo {
-    name: String,
-    permits_everything: bool,
-    basic_permissions: Vec<HydrusPermissions>,
-    human_permissions: String,
+    pub name: String,
+    pub permits_everything: bool,
+    pub basic_permissions: Vec<HydrusPermissions>,
+    pub human_permissions: String,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -196,9 +196,9 @@ where
 
 #[derive(Decode)]
 pub struct Service {
-    name: String,
+    pub name: String,
     #[musli(default)]
-    service_key: String,
-    servicetype: ServiceType,
-    type_pretty: String,
+    pub service_key: String,
+    pub servicetype: ServiceType,
+    pub type_pretty: String,
 }
