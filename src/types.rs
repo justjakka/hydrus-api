@@ -8,6 +8,8 @@ pub enum HydrusError {
     NetworkError(ureq::Error),
     #[error("failed to deserialize data")]
     DeserializeError(musli::json::Error),
+    #[error("api or session key needed")]
+    KeyNotSupplied,
 }
 
 impl From<musli::json::Error> for HydrusError {
@@ -95,17 +97,17 @@ where
     }
 }
 
-#[derive(Decode)]
+#[derive(Decode, Debug)]
 pub struct AccessKey {
     pub access_key: String,
 }
 
-#[derive(Decode)]
+#[derive(Decode, Debug)]
 pub struct SessionKey {
     pub session_key: String,
 }
 
-#[derive(Decode)]
+#[derive(Decode, Debug)]
 pub struct KeyInfo {
     pub name: String,
     pub permits_everything: bool,
@@ -190,7 +192,8 @@ where
     where
         D: Decoder<'de>,
     {
-        Ok(decoder.decode()?)
+        let val: u8 = decoder.decode()?;
+        Ok(val.into())
     }
 }
 
@@ -201,4 +204,10 @@ pub struct Service {
     pub service_key: String,
     pub servicetype: ServiceType,
     pub type_pretty: String,
+    #[musli(default)]
+    pub star_shape: String,
+    #[musli(default)]
+    pub min_stars: u8,
+    #[musli(default)]
+    pub max_stars: u8,
 }

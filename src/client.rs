@@ -9,30 +9,30 @@ pub struct HydrusClient {
 }
 
 impl HydrusClient {
-    pub fn new(url: String) -> HydrusClient {
+    pub fn new(url: &str) -> HydrusClient {
         HydrusClient {
             apikey: None,
             sessionkey: None,
-            url,
+            url: url.to_string(),
         }
     }
 
-    pub fn set_api_key(&mut self, key: String) {
-        self.apikey = Some(key)
+    pub fn set_api_key(&mut self, key: &str) {
+        self.apikey = Some(key.to_owned())
     }
 
-    pub fn set_session_key(&mut self, key: String) {
-        self.sessionkey = Some(key)
+    pub fn set_session_key(&mut self, key: &str) {
+        self.sessionkey = Some(key.to_owned())
     }
 
     pub fn request_new_permissions(
         &self,
-        name: String,
+        name: &str,
         permissions: &[HydrusPermissions],
     ) -> Result<String> {
         let mut req_url = self.url.to_owned();
-        req_url.push_str("/request_new_permissions?name=");
-        req_url.push_str(&name);
+        req_url.push_str("request_new_permissions?name=");
+        req_url.push_str(&urlencoding::encode(&name));
 
         if permissions.is_empty() {
             req_url.push_str("&permit_everything=true");
@@ -51,7 +51,7 @@ impl HydrusClient {
 
     pub fn get_session_key(&self) -> Result<String> {
         let mut req_url = self.url.to_owned();
-        req_url.push_str("/session_key");
+        req_url.push_str("session_key");
 
         let mut request = ureq::get(req_url);
 
@@ -66,9 +66,9 @@ impl HydrusClient {
         Ok(key.session_key)
     }
 
-    pub fn verify_access_key(&self, key: String) -> Result<KeyInfo> {
+    pub fn verify_access_key(&self, key: &str) -> Result<KeyInfo> {
         let mut req_url = self.url.to_owned();
-        req_url.push_str("/verify_access_key");
+        req_url.push_str("verify_access_key");
         let response = ureq::get(req_url)
             .header("Hydrus-Client-API-Access-Key", key)
             .call()?
@@ -80,10 +80,27 @@ impl HydrusClient {
         Ok(data)
     }
 
-    pub fn get_service_name(&self, name: String) -> Result<Service> {
+    pub fn get_service_name(&self, name: &str) -> Result<Service> {
         let mut req_url = self.url.to_owned();
-        req_url.push_str("/get_service?service_name=");
+        req_url.push_str("get_service?service_name=");
         req_url.push_str(&urlencoding::encode(&name));
-        todo!()
+        let response = if let Some(key) = &self.sessionkey {
+            ureq::get(req_url)
+                .header("Hydrus-Client-API-Access-Key", key)
+                .call()?
+                .body_mut()
+                .read_to_vec()?
+        } else if let Some(key) = &self.apikey {
+            ureq::get(req_url)
+                .header("Hydrus-Client-API-Access-Key", key)
+                .call()?
+                .body_mut()
+                .read_to_vec()?
+        } else {
+            return Err(HydrusError::KeyNotSupplied);
+        };
+
+        let service: Service = musli::json::decode(response.as_slice())?;
+        Ok(service)
     }
 }
