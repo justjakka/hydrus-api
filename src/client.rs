@@ -32,7 +32,7 @@ impl HydrusClient {
     ) -> Result<String> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("request_new_permissions?name=");
-        req_url.push_str(&urlencoding::encode(&name));
+        req_url.push_str(&urlencoding::encode(name));
 
         if permissions.is_empty() {
             req_url.push_str("&permit_everything=true");
@@ -83,7 +83,7 @@ impl HydrusClient {
     pub fn get_service_name(&self, name: &str) -> Result<Service> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("get_service?service_name=");
-        req_url.push_str(&urlencoding::encode(&name));
+        req_url.push_str(&urlencoding::encode(name));
         let response = if let Some(key) = &self.sessionkey {
             ureq::get(req_url)
                 .header("Hydrus-Client-API-Access-Key", key)

@@ -26,7 +26,6 @@ impl From<ureq::Error> for HydrusError {
 
 #[derive(PartialEq, Debug, Clone)]
 #[repr(u8)]
-
 pub enum HydrusPermissions {
     ImportAndEditURLs = 0,
     ImportAndEditFiles,

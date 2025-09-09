@@ -1,3 +1,5 @@
 pub mod client;
-mod tests;
 pub mod types;
+
+#[cfg(test)]
+mod tests;

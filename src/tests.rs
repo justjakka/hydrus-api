@@ -1,8 +1,6 @@
 use crate::client::HydrusClient;
-use http::Uri;
-
-#[cfg(test)]
 use crate::types::*;
+
 #[test]
 fn correct_hydruspermissions_url_encode() {
     let perms: [HydrusPermissions; 3] = [
