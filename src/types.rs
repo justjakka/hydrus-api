@@ -1,5 +1,5 @@
-use core::panic;
 use musli::{Allocator, Decode, Decoder, Encode, Encoder};
+use strum_macros::FromRepr;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -24,7 +24,7 @@ impl From<ureq::Error> for HydrusError {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, FromRepr)]
 #[repr(u8)]
 pub enum HydrusPermissions {
     ImportAndEditURLs = 0,
@@ -41,6 +41,7 @@ pub enum HydrusPermissions {
     EditFileTimes,
     CommitPending,
     SeeLocalPaths,
+    Null = 255,
 }
 
 impl<M> Encode<M> for HydrusPermissions {
@@ -60,28 +61,6 @@ impl<M> Encode<M> for HydrusPermissions {
     }
 }
 
-impl From<u8> for HydrusPermissions {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => HydrusPermissions::ImportAndEditURLs,
-            1 => HydrusPermissions::ImportAndEditFiles,
-            2 => HydrusPermissions::EditFileTags,
-            3 => HydrusPermissions::SearchAndFetchFiles,
-            4 => HydrusPermissions::ManagePages,
-            5 => HydrusPermissions::ManageCookiesAndHeaders,
-            6 => HydrusPermissions::ManageDatabase,
-            7 => HydrusPermissions::EditFileNotes,
-            8 => HydrusPermissions::EditFileRelationships,
-            9 => HydrusPermissions::EditFileRatings,
-            10 => HydrusPermissions::ManagePopups,
-            11 => HydrusPermissions::EditFileTimes,
-            12 => HydrusPermissions::CommitPending,
-            13 => HydrusPermissions::SeeLocalPaths,
-            _ => panic!("incorrect permission id"),
-        }
-    }
-}
-
 impl<'de, M, A> Decode<'de, M, A> for HydrusPermissions
 where
     A: Allocator,
@@ -91,8 +70,11 @@ where
     where
         D: Decoder<'de>,
     {
-        let val: u8 = decoder.decode()?;
-        Ok(val.into())
+        if let Some(val) = HydrusPermissions::from_repr(decoder.decode()?) {
+            return Ok(val);
+        } else {
+            return Ok(Self::Null);
+        }
     }
 }
 
@@ -114,7 +96,7 @@ pub struct KeyInfo {
     pub human_permissions: String,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, FromRepr)]
 #[repr(u8)]
 pub enum ServiceType {
     TagRepository = 0,
@@ -136,6 +118,7 @@ pub enum ServiceType {
     AllMyFiles,
     IncDecRating,
     ServerAdmin = 99,
+    Null = 255,
 }
 
 impl<M> Encode<M> for ServiceType {
@@ -155,33 +138,6 @@ impl<M> Encode<M> for ServiceType {
     }
 }
 
-impl From<u8> for ServiceType {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => ServiceType::TagRepository,
-            1 => ServiceType::FileRepository,
-            2 => ServiceType::LocalFileDomain,
-            5 => ServiceType::LocalTagDomain,
-            6 => ServiceType::NumericalRating,
-            7 => ServiceType::BoolRating,
-            10 => ServiceType::AllKnownTags,
-            11 => ServiceType::AllKnownFiles,
-            12 => ServiceType::LocalBooru,
-            13 => ServiceType::IPFS,
-            14 => ServiceType::Trash,
-            15 => ServiceType::AllLocalFiles,
-            17 => ServiceType::FileNotes,
-            18 => ServiceType::ClientAPI,
-            19 => ServiceType::DeletedFromAnywhere,
-            20 => ServiceType::LocalUpdates,
-            21 => ServiceType::AllMyFiles,
-            22 => ServiceType::IncDecRating,
-            99 => ServiceType::ServerAdmin,
-            _ => panic!("incorrect service id"),
-        }
-    }
-}
-
 impl<'de, M, A> Decode<'de, M, A> for ServiceType
 where
     A: Allocator,
@@ -191,8 +147,11 @@ where
     where
         D: Decoder<'de>,
     {
-        let val: u8 = decoder.decode()?;
-        Ok(val.into())
+        if let Some(val) = ServiceType::from_repr(decoder.decode()?) {
+            return Ok(val);
+        } else {
+            return Ok(Self::Null);
+        }
     }
 }
 

@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 musli = { version = "0.0.145", features = ["json"] }
+strum_macros = "0.27.2"
 thiserror = "2.0.16"
 ureq = "3.1.0"
 urlencoding = "2.1.3"
