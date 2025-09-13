@@ -1,3 +1,7 @@
+use std::fs::File;
+
+use ureq::RequestBuilder;
+
 use crate::types::*;
 
 type Result<T> = std::result::Result<T, HydrusError>;
@@ -80,27 +84,128 @@ impl HydrusClient {
         Ok(data)
     }
 
+    fn set_get_api_key(
+        &self,
+        request: RequestBuilder<ureq::typestate::WithoutBody>,
+    ) -> Result<RequestBuilder<ureq::typestate::WithoutBody>> {
+        if let Some(key) = &self.sessionkey {
+            Ok(request.header("Hydrus-Client-API-Access-Key", key))
+        } else if let Some(key) = &self.apikey {
+            Ok(request.header("Hydrus-Client-API-Access-Key", key))
+        } else {
+            Err(HydrusError::KeyNotSupplied)
+        }
+    }
+
+    fn set_post_api_key(
+        &self,
+        request: RequestBuilder<ureq::typestate::WithBody>,
+    ) -> Result<RequestBuilder<ureq::typestate::WithBody>> {
+        if let Some(key) = &self.sessionkey {
+            Ok(request.header("Hydrus-Client-API-Access-Key", key))
+        } else if let Some(key) = &self.apikey {
+            Ok(request.header("Hydrus-Client-API-Access-Key", key))
+        } else {
+            Err(HydrusError::KeyNotSupplied)
+        }
+    }
+
     pub fn get_service_name(&self, name: &str) -> Result<Service> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("get_service?service_name=");
         req_url.push_str(&urlencoding::encode(name));
-        let response = if let Some(key) = &self.sessionkey {
-            ureq::get(req_url)
-                .header("Hydrus-Client-API-Access-Key", key)
-                .call()?
-                .body_mut()
-                .read_to_vec()?
-        } else if let Some(key) = &self.apikey {
-            ureq::get(req_url)
-                .header("Hydrus-Client-API-Access-Key", key)
-                .call()?
-                .body_mut()
-                .read_to_vec()?
-        } else {
-            return Err(HydrusError::KeyNotSupplied);
-        };
+
+        let response = self
+            .set_get_api_key(ureq::get(req_url))?
+            .call()?
+            .body_mut()
+            .read_to_vec()?;
 
         let service: Service = musli::json::decode(response.as_slice())?;
         Ok(service)
+    }
+
+    pub fn get_service_key(&self, key: &str) -> Result<Service> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("get_service?service_key=");
+        req_url.push_str(&urlencoding::encode(key));
+
+        let response = self
+            .set_get_api_key(ureq::get(req_url))?
+            .call()?
+            .body_mut()
+            .read_to_vec()?;
+
+        let service: Service = musli::json::decode(response.as_slice())?;
+        Ok(service)
+    }
+
+    pub fn get_services(&self) -> Result<Vec<Service>> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("get_services");
+
+        let response = self
+            .set_get_api_key(ureq::get(req_url))?
+            .call()?
+            .body_mut()
+            .read_to_vec()?;
+
+        let services: ServiceResponse = musli::json::decode(response.as_slice())?;
+
+        Ok(services.service_vec())
+    }
+
+    pub fn add_file_via_path(
+        &self,
+        path: &str,
+        delete: Option<bool>,
+        domains: Option<FileDomain>,
+    ) -> Result<FileAddResponse> {
+        let mut form = AddFileRequest {
+            path: path.to_owned(),
+            delete_after_successful_import: delete,
+            ..Default::default()
+        };
+
+        if let Some(file_domains) = domains {
+            match file_domains {
+                FileDomain::FileServiceKey(key) => form.file_service_key = Some(key),
+                FileDomain::FileServiceKeys(keys) => form.file_service_keys = Some(keys),
+                FileDomain::DeletedFileServiceKey(key) => form.deleted_file_service_key = Some(key),
+                FileDomain::DeletedFileServiceKeys(keys) => {
+                    form.deleted_file_service_keys = Some(keys)
+                }
+            }
+        }
+
+        let data = musli::json::to_vec(&form)?;
+
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/add_file");
+
+        let response = self
+            .set_post_api_key(ureq::post(req_url))?
+            .content_type("application/json")
+            .send(data)?
+            .body_mut()
+            .read_to_vec()?;
+
+        let status: FileAddResponse = musli::json::decode(response.as_slice())?;
+        Ok(status)
+    }
+
+    pub fn add_file_via_file(&self, file: &File) -> Result<FileAddResponse> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/add_file");
+
+        let response = self
+            .set_post_api_key(ureq::post(req_url))?
+            .content_type("application/octet-stream")
+            .send(file)?
+            .body_mut()
+            .read_to_vec()?;
+
+        let status: FileAddResponse = musli::json::decode(response.as_slice())?;
+        Ok(status)
     }
 }

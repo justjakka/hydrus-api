@@ -42,7 +42,9 @@ fn correct_hydrusservice_decode() {
 }
 
 #[test]
-fn get_keys() {
-    let client: HydrusClient = HydrusClient::new("http://127.0.0.1:51251/");
-    let _ = client.request_new_permissions("test client", &[]).unwrap();
+fn correct_hydrusservices_decode() {
+    let mut client: HydrusClient = HydrusClient::new("http://127.0.0.1:51251/");
+    client.set_api_key("7ab7accf6cf12b2c6c30436cd8fe16361aee33679dbd90da279b5c22b33d622a");
+    let test = client.get_services().unwrap();
+    assert!(!test.is_empty())
 }
