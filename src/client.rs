@@ -38,13 +38,11 @@ impl HydrusClient {
             req_url.push_str("&permit_everything=true");
         } else {
             req_url.push_str("&basic_permissions=");
-            let json_string = musli::json::to_string(&permissions)?;
+            let json_string = serde_json::to_string(&permissions)?;
             req_url.push_str(&urlencoding::encode(&json_string));
         };
 
-        let response = ureq::get(req_url).call()?.body_mut().read_to_vec()?;
-
-        let key: AccessKey = musli::json::decode(response.as_slice())?;
+        let key: AccessKey = ureq::get(req_url).call()?.body_mut().read_json()?;
 
         Ok(key.access_key)
     }
@@ -59,9 +57,7 @@ impl HydrusClient {
             request = request.header("Hydrus-Client-API-Access-Key", key);
         }
 
-        let response = request.call()?.body_mut().read_to_vec()?;
-
-        let key: SessionKey = musli::json::decode(response.as_slice())?;
+        let key: SessionKey = request.call()?.body_mut().read_json()?;
 
         Ok(key.session_key)
     }
@@ -69,38 +65,80 @@ impl HydrusClient {
     pub fn verify_access_key(&self, key: &str) -> Result<KeyInfo> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("verify_access_key");
-        let response = ureq::get(req_url)
+        let keyinfo: KeyInfo = ureq::get(req_url)
             .header("Hydrus-Client-API-Access-Key", key)
             .call()?
             .body_mut()
-            .read_to_vec()?;
+            .read_json()?;
 
-        let data: KeyInfo = musli::json::decode(response.as_slice())?;
-
-        Ok(data)
+        Ok(keyinfo)
     }
 
     pub fn get_service_name(&self, name: &str) -> Result<Service> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("get_service?service_name=");
         req_url.push_str(&urlencoding::encode(name));
-        let response = if let Some(key) = &self.sessionkey {
+        let service: Service = if let Some(key) = &self.sessionkey {
             ureq::get(req_url)
                 .header("Hydrus-Client-API-Access-Key", key)
                 .call()?
                 .body_mut()
-                .read_to_vec()?
+                .read_json()?
         } else if let Some(key) = &self.apikey {
             ureq::get(req_url)
                 .header("Hydrus-Client-API-Access-Key", key)
                 .call()?
                 .body_mut()
-                .read_to_vec()?
+                .read_json()?
         } else {
             return Err(HydrusError::KeyNotSupplied);
         };
 
-        let service: Service = musli::json::decode(response.as_slice())?;
         Ok(service)
+    }
+
+    pub fn get_service_key(&self, name: &str) -> Result<Service> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("get_service?service_key=");
+        req_url.push_str(&urlencoding::encode(name));
+        let service: Service = if let Some(key) = &self.sessionkey {
+            ureq::get(req_url)
+                .header("Hydrus-Client-API-Access-Key", key)
+                .call()?
+                .body_mut()
+                .read_json()?
+        } else if let Some(key) = &self.apikey {
+            ureq::get(req_url)
+                .header("Hydrus-Client-API-Access-Key", key)
+                .call()?
+                .body_mut()
+                .read_json()?
+        } else {
+            return Err(HydrusError::KeyNotSupplied);
+        };
+
+        Ok(service)
+    }
+
+    pub fn get_services(&self) -> Result<Vec<Service>> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("get_services");
+        let response: ServiceResponse = if let Some(key) = &self.sessionkey {
+            ureq::get(req_url)
+                .header("Hydrus-Client-API-Access-Key", key)
+                .call()?
+                .body_mut()
+                .read_json()?
+        } else if let Some(key) = &self.apikey {
+            ureq::get(req_url)
+                .header("Hydrus-Client-API-Access-Key", key)
+                .call()?
+                .body_mut()
+                .read_json()?
+        } else {
+            return Err(HydrusError::KeyNotSupplied);
+        };
+        println!("{:?}", response);
+        Ok(vec![])
     }
 }

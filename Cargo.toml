@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-musli = { version = "0.0.145", features = ["json"] }
-strum_macros = "0.27.2"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = { version = "1.0.143", features = ["alloc"] }
+serde_repr = "0.1.20"
 thiserror = "2.0.16"
-ureq = "3.1.0"
+ureq = { version = "3.1.0", features = ["json"] }
 urlencoding = "2.1.3"

@@ -1,5 +1,6 @@
-use musli::{Allocator, Decode, Decoder, Encode, Encoder};
-use strum_macros::FromRepr;
+use serde::Deserialize;
+use serde_repr::{Deserialize_repr, Serialize_repr};
+use std::collections::HashMap;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -7,13 +8,13 @@ pub enum HydrusError {
     #[error("failed to connect to Hydrus")]
     NetworkError(ureq::Error),
     #[error("failed to deserialize data")]
-    DeserializeError(musli::json::Error),
+    DeserializeError(serde_json::Error),
     #[error("api or session key needed")]
     KeyNotSupplied,
 }
 
-impl From<musli::json::Error> for HydrusError {
-    fn from(value: musli::json::Error) -> Self {
+impl From<serde_json::Error> for HydrusError {
+    fn from(value: serde_json::Error) -> Self {
         HydrusError::DeserializeError(value)
     }
 }
@@ -24,7 +25,7 @@ impl From<ureq::Error> for HydrusError {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, FromRepr)]
+#[derive(PartialEq, Debug, Clone, Deserialize_repr, Serialize_repr)]
 #[repr(u8)]
 pub enum HydrusPermissions {
     ImportAndEditURLs = 0,
@@ -44,51 +45,17 @@ pub enum HydrusPermissions {
     Null = 255,
 }
 
-impl<M> Encode<M> for HydrusPermissions {
-    type Encode = Self;
-
-    #[inline]
-    fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
-    where
-        E: Encoder<Mode = M>,
-    {
-        encoder.encode(self.clone() as u8)
-    }
-
-    #[inline]
-    fn as_encode(&self) -> &Self::Encode {
-        self
-    }
-}
-
-impl<'de, M, A> Decode<'de, M, A> for HydrusPermissions
-where
-    A: Allocator,
-{
-    #[inline]
-    fn decode<D>(decoder: D) -> Result<Self, D::Error>
-    where
-        D: Decoder<'de>,
-    {
-        if let Some(val) = HydrusPermissions::from_repr(decoder.decode()?) {
-            return Ok(val);
-        } else {
-            return Ok(Self::Null);
-        }
-    }
-}
-
-#[derive(Decode, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct AccessKey {
     pub access_key: String,
 }
 
-#[derive(Decode, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct SessionKey {
     pub session_key: String,
 }
 
-#[derive(Decode, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct KeyInfo {
     pub name: String,
     pub permits_everything: bool,
@@ -96,7 +63,7 @@ pub struct KeyInfo {
     pub human_permissions: String,
 }
 
-#[derive(PartialEq, Debug, Clone, FromRepr)]
+#[derive(PartialEq, Debug, Clone, Deserialize_repr, Serialize_repr)]
 #[repr(u8)]
 pub enum ServiceType {
     TagRepository = 0,
@@ -121,51 +88,24 @@ pub enum ServiceType {
     Null = 255,
 }
 
-impl<M> Encode<M> for ServiceType {
-    type Encode = Self;
-
-    #[inline]
-    fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
-    where
-        E: Encoder<Mode = M>,
-    {
-        encoder.encode(self.clone() as u8)
-    }
-
-    #[inline]
-    fn as_encode(&self) -> &Self::Encode {
-        self
-    }
-}
-
-impl<'de, M, A> Decode<'de, M, A> for ServiceType
-where
-    A: Allocator,
-{
-    #[inline]
-    fn decode<D>(decoder: D) -> Result<Self, D::Error>
-    where
-        D: Decoder<'de>,
-    {
-        if let Some(val) = ServiceType::from_repr(decoder.decode()?) {
-            return Ok(val);
-        } else {
-            return Ok(Self::Null);
-        }
-    }
-}
-
-#[derive(Decode)]
+#[derive(Deserialize, Debug)]
 pub struct Service {
     pub name: String,
-    #[musli(default)]
+    #[serde(default)]
     pub service_key: String,
-    pub servicetype: ServiceType,
+    pub r#type: ServiceType,
     pub type_pretty: String,
-    #[musli(default)]
+    #[serde(default)]
     pub star_shape: String,
-    #[musli(default)]
+    #[serde(default)]
     pub min_stars: u8,
-    #[musli(default)]
+    #[serde(default)]
     pub max_stars: u8,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ServiceResponse {
+    pub services: HashMap<String, Service>,
+    #[serde(flatten)]
+    _extra: HashMap<String, serde_json::Value>,
 }
