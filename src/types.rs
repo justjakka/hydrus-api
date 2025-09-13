@@ -260,5 +260,5 @@ pub struct DeleteFileRequest {
     #[musli(skip)]
     pub deleted_file_service_keys: Option<Vec<String>>,
     #[musli(skip)]
-    pub reason: String,
+    pub reason: Option<String>,
 }
