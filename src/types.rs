@@ -32,14 +32,6 @@ impl From<reqwest::Error> for HydrusError {
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct HydrusResponse<T> {
-    #[serde(alias = "service", alias = "services")]
-    pub body: T,
-    pub version: u64,
-    pub hydrus_version: u64,
-}
-
 #[derive(PartialEq, Debug, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum HydrusPermissions {
@@ -58,16 +50,6 @@ pub enum HydrusPermissions {
     CommitPending,
     SeeLocalPaths,
     Null = 255,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct AccessKey {
-    pub access_key: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct SessionKey {
-    pub session_key: String,
 }
 
 #[derive(Deserialize, Debug)]

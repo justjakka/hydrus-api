@@ -2,6 +2,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use async_trait::async_trait;
 use reqwest::{Body, RequestBuilder};
+use serde::Deserialize;
 use tokio_util::codec::{BytesCodec, FramedRead};
 
 use crate::{traits::*, types::*};
@@ -56,6 +57,17 @@ impl HydrusClient {
     }
 }
 
+#[derive(Deserialize, Debug)]
+struct HydrusResponse<T> {
+    #[serde(
+        alias = "service",
+        alias = "services",
+        alias = "access_key",
+        alias = "session_key"
+    )]
+    body: T,
+}
+
 #[async_trait]
 impl AccessManagement for HydrusClient {
     async fn request_new_permissions(
@@ -81,9 +93,9 @@ impl AccessManagement for HydrusClient {
             .get(req_url)
             .send()
             .await?
-            .json::<AccessKey>()
+            .json::<HydrusResponse<String>>()
             .await?
-            .access_key)
+            .body)
     }
 
     async fn get_session_key(&self) -> Result<String> {
@@ -99,9 +111,9 @@ impl AccessManagement for HydrusClient {
         Ok(request
             .send()
             .await?
-            .json::<SessionKey>()
+            .json::<HydrusResponse<String>>()
             .await?
-            .session_key)
+            .body)
     }
 
     async fn verify_access_key(&self, key: &str) -> Result<KeyInfo> {
