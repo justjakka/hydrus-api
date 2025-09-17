@@ -1,9 +1,10 @@
-use std::path::Path;
+use std::path::PathBuf;
 
+use async_trait::async_trait;
 use reqwest::{Body, RequestBuilder};
 use tokio_util::codec::{BytesCodec, FramedRead};
 
-use crate::types::*;
+use crate::{traits::*, types::*};
 
 type Result<T> = std::result::Result<T, HydrusError>;
 
@@ -32,7 +33,32 @@ impl HydrusClient {
         self.sessionkey = Some(key.to_owned())
     }
 
-    pub async fn request_new_permissions(
+    fn set_get_request_key(&self, url: &str) -> Result<RequestBuilder> {
+        let request = self.client.get(url);
+        if let Some(key) = &self.sessionkey {
+            Ok(request.header("Hydrus-Client-API-Access-Key", key))
+        } else if let Some(key) = &self.apikey {
+            Ok(request.header("Hydrus-Client-API-Access-Key", key))
+        } else {
+            Err(HydrusError::KeyNotSupplied)
+        }
+    }
+
+    fn set_post_request_key(&self, url: &str) -> Result<RequestBuilder> {
+        let request = self.client.post(url);
+        if let Some(key) = &self.sessionkey {
+            Ok(request.header("Hydrus-Client-API-Access-Key", key))
+        } else if let Some(key) = &self.apikey {
+            Ok(request.header("Hydrus-Client-API-Access-Key", key))
+        } else {
+            Err(HydrusError::KeyNotSupplied)
+        }
+    }
+}
+
+#[async_trait]
+impl AccessManagement for HydrusClient {
+    async fn request_new_permissions(
         &self,
         name: &str,
         permissions: &[HydrusPermissions],
@@ -60,7 +86,7 @@ impl HydrusClient {
             .access_key)
     }
 
-    pub async fn get_session_key(&self) -> Result<String> {
+    async fn get_session_key(&self) -> Result<String> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("session_key");
 
@@ -78,7 +104,7 @@ impl HydrusClient {
             .session_key)
     }
 
-    pub async fn verify_access_key(&self, key: &str) -> Result<KeyInfo> {
+    async fn verify_access_key(&self, key: &str) -> Result<KeyInfo> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("verify_access_key");
 
@@ -92,29 +118,7 @@ impl HydrusClient {
             .await?)
     }
 
-    fn set_get_request_key(&self, url: &str) -> Result<RequestBuilder> {
-        let request = self.client.get(url);
-        if let Some(key) = &self.sessionkey {
-            Ok(request.header("Hydrus-Client-API-Access-Key", key))
-        } else if let Some(key) = &self.apikey {
-            Ok(request.header("Hydrus-Client-API-Access-Key", key))
-        } else {
-            Err(HydrusError::KeyNotSupplied)
-        }
-    }
-
-    fn set_post_request_key(&self, url: &str) -> Result<RequestBuilder> {
-        let request = self.client.post(url);
-        if let Some(key) = &self.sessionkey {
-            Ok(request.header("Hydrus-Client-API-Access-Key", key))
-        } else if let Some(key) = &self.apikey {
-            Ok(request.header("Hydrus-Client-API-Access-Key", key))
-        } else {
-            Err(HydrusError::KeyNotSupplied)
-        }
-    }
-
-    pub async fn get_service_name(&self, name: &str) -> Result<Service> {
+    async fn get_service_name(&self, name: &str) -> Result<Service> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("get_service?service_name=");
         req_url.push_str(&urlencoding::encode(name));
@@ -127,7 +131,7 @@ impl HydrusClient {
             .await?)
     }
 
-    pub async fn get_service_key(&self, key: &str) -> Result<Service> {
+    async fn get_service_key(&self, key: &str) -> Result<Service> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("get_service?service_key=");
         req_url.push_str(&urlencoding::encode(key));
@@ -140,7 +144,7 @@ impl HydrusClient {
             .await?)
     }
 
-    pub async fn get_services(&self) -> Result<Vec<Service>> {
+    async fn get_services(&self) -> Result<Vec<Service>> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("get_services");
 
@@ -152,8 +156,11 @@ impl HydrusClient {
             .await?
             .service_vec())
     }
+}
 
-    pub async fn add_file_via_path(
+#[async_trait]
+impl ImportingAndDeletingFiles for HydrusClient {
+    async fn add_file_via_path(
         &self,
         path: &str,
         delete: Option<bool>,
@@ -189,7 +196,7 @@ impl HydrusClient {
             .await?)
     }
 
-    pub async fn add_file_via_file(&self, file: impl AsRef<Path>) -> Result<FileAddResponse> {
+    async fn add_file_via_file(&self, file: PathBuf) -> Result<FileAddResponse> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("add_files/add_file");
 

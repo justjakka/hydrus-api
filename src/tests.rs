@@ -1,5 +1,5 @@
 use crate::client::HydrusClient;
-use crate::types::*;
+use crate::{traits::*, types::*};
 
 #[tokio::test]
 async fn test_service_info() {
