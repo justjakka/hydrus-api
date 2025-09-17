@@ -1,8 +1,7 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use async_trait::async_trait;
 use reqwest::{Body, RequestBuilder};
-use serde_json::Value;
 use tokio_util::codec::{BytesCodec, FramedRead};
 
 use crate::{traits::*, types::*};
@@ -124,14 +123,13 @@ impl AccessManagement for HydrusClient {
         req_url.push_str("get_service?service_name=");
         req_url.push_str(&urlencoding::encode(name));
 
-        Ok(serde_json::from_value::<Service>(
-            self.set_get_request_key(&req_url)?
-                .send()
-                .await?
-                .json::<Value>()
-                .await?["service"]
-                .take(),
-        )?)
+        Ok(self
+            .set_get_request_key(&req_url)?
+            .send()
+            .await?
+            .json::<HydrusResponse<Service>>()
+            .await?
+            .body)
     }
 
     async fn get_service_key(&self, key: &str) -> Result<Service> {
@@ -139,27 +137,32 @@ impl AccessManagement for HydrusClient {
         req_url.push_str("get_service?service_key=");
         req_url.push_str(&urlencoding::encode(key));
 
-        Ok(serde_json::from_value::<Service>(
-            self.set_get_request_key(&req_url)?
-                .send()
-                .await?
-                .json::<Value>()
-                .await?["service"]
-                .take(),
-        )?)
-    }
-
-    async fn get_services(&self) -> Result<Vec<Service>> {
-        let mut req_url = self.url.to_owned();
-        req_url.push_str("get_services");
-
         Ok(self
             .set_get_request_key(&req_url)?
             .send()
             .await?
-            .json::<ServiceResponse>()
+            .json::<HydrusResponse<Service>>()
             .await?
-            .service_vec())
+            .body)
+    }
+
+    async fn get_services(&self) -> Result<HashMap<String, Service>> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("get_services");
+
+        let mut services = self
+            .set_get_request_key(&req_url)?
+            .send()
+            .await?
+            .json::<HydrusResponse<HashMap<String, Service>>>()
+            .await?
+            .body;
+
+        for (key, service) in services.iter_mut() {
+            service.service_key = key.to_string();
+        }
+
+        Ok(services)
     }
 }
 

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use crate::types::*;
 use async_trait::async_trait;
@@ -21,7 +21,7 @@ pub trait AccessManagement {
 
     async fn get_service_key(&self, key: &str) -> Result<Service>;
 
-    async fn get_services(&self) -> Result<Vec<Service>>;
+    async fn get_services(&self) -> Result<HashMap<String, Service>>;
 }
 
 #[async_trait]

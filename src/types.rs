@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
-use std::collections::HashMap;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -31,6 +30,14 @@ impl From<reqwest::Error> for HydrusError {
     fn from(value: reqwest::Error) -> Self {
         HydrusError::NetworkError(value)
     }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct HydrusResponse<T> {
+    #[serde(alias = "service", alias = "services")]
+    pub body: T,
+    pub version: u64,
+    pub hydrus_version: u64,
 }
 
 #[derive(PartialEq, Debug, Clone, Serialize_repr, Deserialize_repr)]
@@ -109,22 +116,6 @@ pub struct Service {
     pub min_stars: Option<u8>,
     #[serde(default)]
     pub max_stars: Option<u8>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ServiceResponse {
-    services: HashMap<String, Service>,
-}
-
-impl ServiceResponse {
-    pub fn service_vec(mut self) -> Vec<Service> {
-        let mut res = Vec::new();
-        for (key, mut service) in self.services.drain() {
-            service.service_key = key;
-            res.push(service);
-        }
-        res
-    }
 }
 
 pub enum FileDomain {
