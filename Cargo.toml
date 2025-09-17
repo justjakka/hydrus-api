@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-musli = { version = "0.0.145", features = ["json"] }
-strum_macros = "0.27.2"
+reqwest = { version = "0.12.23", features = ["json", "stream"] }
+serde = { version = "1.0.225", features = ["derive"] }
+serde_json = "1.0.145"
+serde_repr = "0.1.20"
 thiserror = "2.0.16"
-ureq = "3.1.0"
+tokio = { version = "1.47.1", features = ["rt", "macros"] }
+tokio-util = "0.7.16"
 urlencoding = "2.1.3"

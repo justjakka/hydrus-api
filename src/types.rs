@@ -1,31 +1,39 @@
-use musli::{Allocator, Decode, Decoder, Encode, Encoder};
+use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::collections::HashMap;
-use strum_macros::FromRepr;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum HydrusError {
     #[error("failed to connect to Hydrus")]
-    NetworkError(ureq::Error),
-    #[error("failed to encode/decode data")]
-    DeserializeError(musli::json::Error),
+    NetworkError(reqwest::Error),
+    #[error("failed to encode/Deserialize data")]
+    DeserializeError(serde_json::Error),
+    #[error("io error")]
+    IOError(std::io::Error),
     #[error("api or session key needed")]
     KeyNotSupplied,
 }
 
-impl From<musli::json::Error> for HydrusError {
-    fn from(value: musli::json::Error) -> Self {
+impl From<serde_json::Error> for HydrusError {
+    fn from(value: serde_json::Error) -> Self {
         HydrusError::DeserializeError(value)
     }
 }
 
-impl From<ureq::Error> for HydrusError {
-    fn from(value: ureq::Error) -> Self {
+impl From<std::io::Error> for HydrusError {
+    fn from(value: std::io::Error) -> Self {
+        HydrusError::IOError(value)
+    }
+}
+
+impl From<reqwest::Error> for HydrusError {
+    fn from(value: reqwest::Error) -> Self {
         HydrusError::NetworkError(value)
     }
 }
 
-#[derive(PartialEq, Debug, Clone, FromRepr)]
+#[derive(PartialEq, Debug, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum HydrusPermissions {
     ImportAndEditURLs = 0,
@@ -45,47 +53,17 @@ pub enum HydrusPermissions {
     Null = 255,
 }
 
-impl<M> Encode<M> for HydrusPermissions {
-    type Encode = Self;
-
-    #[inline]
-    fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
-    where
-        E: Encoder<Mode = M>,
-    {
-        encoder.encode(self.clone() as u8)
-    }
-
-    #[inline]
-    fn as_encode(&self) -> &Self::Encode {
-        self
-    }
-}
-
-impl<'de, M, A> Decode<'de, M, A> for HydrusPermissions
-where
-    A: Allocator,
-{
-    #[inline]
-    fn decode<D>(decoder: D) -> Result<Self, D::Error>
-    where
-        D: Decoder<'de>,
-    {
-        Ok(HydrusPermissions::from_repr(decoder.decode()?).unwrap())
-    }
-}
-
-#[derive(Decode, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct AccessKey {
     pub access_key: String,
 }
 
-#[derive(Decode, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct SessionKey {
     pub session_key: String,
 }
 
-#[derive(Decode, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct KeyInfo {
     pub name: String,
     pub permits_everything: bool,
@@ -93,7 +71,7 @@ pub struct KeyInfo {
     pub human_permissions: String,
 }
 
-#[derive(PartialEq, Debug, Clone, FromRepr)]
+#[derive(PartialEq, Debug, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum ServiceType {
     TagRepository = 0,
@@ -118,52 +96,22 @@ pub enum ServiceType {
     Null = 255,
 }
 
-impl<M> Encode<M> for ServiceType {
-    type Encode = Self;
-
-    #[inline]
-    fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
-    where
-        E: Encoder<Mode = M>,
-    {
-        encoder.encode(self.clone() as u8)
-    }
-
-    #[inline]
-    fn as_encode(&self) -> &Self::Encode {
-        self
-    }
-}
-
-impl<'de, M, A> Decode<'de, M, A> for ServiceType
-where
-    A: Allocator,
-{
-    #[inline]
-    fn decode<D>(decoder: D) -> Result<Self, D::Error>
-    where
-        D: Decoder<'de>,
-    {
-        Ok(ServiceType::from_repr(decoder.decode()?).unwrap())
-    }
-}
-
-#[derive(Decode, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Service {
     pub name: String,
-    #[musli(default)]
+    #[serde(default)]
     pub service_key: String,
     pub r#type: ServiceType,
     pub type_pretty: String,
-    #[musli(default)]
+    #[serde(default)]
     pub star_shape: Option<String>,
-    #[musli(default)]
+    #[serde(default)]
     pub min_stars: Option<u8>,
-    #[musli(default)]
+    #[serde(default)]
     pub max_stars: Option<u8>,
 }
 
-#[derive(Decode, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct ServiceResponse {
     services: HashMap<String, Service>,
 }
@@ -186,22 +134,22 @@ pub enum FileDomain {
     DeletedFileServiceKeys(Vec<String>),
 }
 
-#[derive(Encode, Debug, Default)]
+#[derive(Serialize, Debug, Default)]
 pub struct AddFileRequest {
     pub path: String,
-    #[musli(skip)]
+    #[serde(skip)]
     pub delete_after_successful_import: Option<bool>,
-    #[musli(skip)]
+    #[serde(skip)]
     pub file_service_key: Option<String>,
-    #[musli(skip)]
+    #[serde(skip)]
     pub file_service_keys: Option<Vec<String>>,
-    #[musli(skip)]
+    #[serde(skip)]
     pub deleted_file_service_key: Option<String>,
-    #[musli(skip)]
+    #[serde(skip)]
     pub deleted_file_service_keys: Option<Vec<String>>,
 }
 
-#[derive(PartialEq, Debug, Clone, FromRepr)]
+#[derive(PartialEq, Debug, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum FileAddStatus {
     SuccessfulImport = 1,
@@ -211,54 +159,24 @@ pub enum FileAddStatus {
     FileVetoed = 7,
 }
 
-impl<M> Encode<M> for FileAddStatus {
-    type Encode = Self;
-
-    #[inline]
-    fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
-    where
-        E: Encoder<Mode = M>,
-    {
-        encoder.encode(self.clone() as u8)
-    }
-
-    #[inline]
-    fn as_encode(&self) -> &Self::Encode {
-        self
-    }
-}
-
-impl<'de, M, A> Decode<'de, M, A> for FileAddStatus
-where
-    A: Allocator,
-{
-    #[inline]
-    fn decode<D>(decoder: D) -> Result<Self, D::Error>
-    where
-        D: Decoder<'de>,
-    {
-        Ok(FileAddStatus::from_repr(decoder.decode()?).unwrap())
-    }
-}
-
-#[derive(Decode)]
+#[derive(Deserialize)]
 pub struct FileAddResponse {
     pub status: FileAddStatus,
     pub hash: String,
     pub note: String,
 }
 
-#[derive(Encode, Debug, Default)]
+#[derive(Serialize, Debug, Default)]
 pub struct DeleteFileRequest {
     pub path: String,
-    #[musli(skip)]
+    #[serde(skip)]
     pub file_service_key: Option<String>,
-    #[musli(skip)]
+    #[serde(skip)]
     pub file_service_keys: Option<Vec<String>>,
-    #[musli(skip)]
+    #[serde(skip)]
     pub deleted_file_service_key: Option<String>,
-    #[musli(skip)]
+    #[serde(skip)]
     pub deleted_file_service_keys: Option<Vec<String>>,
-    #[musli(skip)]
+    #[serde(skip)]
     pub reason: Option<String>,
 }
