@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use async_trait::async_trait;
 use reqwest::{Body, RequestBuilder};
+use serde_json::Value;
 use tokio_util::codec::{BytesCodec, FramedRead};
 
 use crate::{traits::*, types::*};
@@ -123,12 +124,14 @@ impl AccessManagement for HydrusClient {
         req_url.push_str("get_service?service_name=");
         req_url.push_str(&urlencoding::encode(name));
 
-        Ok(self
-            .set_get_request_key(&req_url)?
-            .send()
-            .await?
-            .json::<Service>()
-            .await?)
+        Ok(serde_json::from_value::<Service>(
+            self.set_get_request_key(&req_url)?
+                .send()
+                .await?
+                .json::<Value>()
+                .await?["service"]
+                .take(),
+        )?)
     }
 
     async fn get_service_key(&self, key: &str) -> Result<Service> {
@@ -136,12 +139,14 @@ impl AccessManagement for HydrusClient {
         req_url.push_str("get_service?service_key=");
         req_url.push_str(&urlencoding::encode(key));
 
-        Ok(self
-            .set_get_request_key(&req_url)?
-            .send()
-            .await?
-            .json::<Service>()
-            .await?)
+        Ok(serde_json::from_value::<Service>(
+            self.set_get_request_key(&req_url)?
+                .send()
+                .await?
+                .json::<Value>()
+                .await?["service"]
+                .take(),
+        )?)
     }
 
     async fn get_services(&self) -> Result<Vec<Service>> {
