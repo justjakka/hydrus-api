@@ -5,37 +5,58 @@ use async_trait::async_trait;
 
 type Result<T> = std::result::Result<T, HydrusError>;
 
-/// trait for accessing and managing keys and services
+/// Trait for accessing and managing keys and services.
 #[async_trait]
 pub trait AccessManagement {
-    /// request new api key
+    /// Register a new external program with the client. This requires the 'add from api request' mini-dialog under services->review services to be open, otherwise it will 403.
     async fn request_new_permissions(
         &self,
         name: &str,
         permissions: &[HydrusPermissions],
     ) -> Result<String>;
-    /// request new session key
+    /// Get a new session key.
     async fn get_session_key(&self) -> Result<String>;
-    /// verify session or api key
+    /// Check your access key is valid.
     async fn verify_access_key(&self, key: &str) -> Result<KeyInfo>;
-    /// get service info by providing service name
+    /// Ask the client about a specific service by providing its name.
     async fn get_service_name(&self, name: &str) -> Result<Service>;
-    /// get service info by providing service key
+    /// Ask the client about a specific service by providing its key.
     async fn get_service_key(&self, key: &str) -> Result<Service>;
-    /// get all service info
+    /// Ask the client about its services.
     async fn get_services(&self) -> Result<HashMap<String, Service>>;
 }
 
-/// trait for importing and deleting files
+/// Trait for importing and deleting files.
 #[async_trait]
 pub trait ImportingAndDeletingFiles {
-    /// import file into hydrus by providing a local (hydrus-local) file path
+    /// Tell the client to import a file by providing a local (hydrus-local) file path.
     async fn add_file_via_path(
         &self,
         path: PathBuf,
         delete: Option<bool>,
         domains: Option<FileDomain>,
     ) -> Result<AddFileResponse>;
-    /// import file into hydrus by sending the file
+    /// Tell the client to import a file by sending the file.
     async fn add_file_via_file(&self, file: PathBuf) -> Result<AddFileResponse>;
+    /// Tell the client to send files to the trash.
+    async fn delete_files(
+        &self,
+        file: HydrusFile,
+        domain: Option<FileDomain>,
+        reason: Option<String>,
+    ) -> Result<()>;
+    /// Tell the client to restore files that were previously deleted to their old file service(s).
+    async fn undelete_files(&self, file: HydrusFile, domain: Option<FileDomain>) -> Result<()>;
+    /// Tell the client to forget that it once deleted files.
+    async fn clear_file_deletion_records(&self, file: HydrusFile) -> Result<()>;
+    /// Copy files from one local file domain to another.
+    async fn migrate_files(&self, file: HydrusFile, domain: FileDomain) -> Result<()>;
+    /// Tell the client to archive inboxed files.
+    async fn archive_files(&self, file: HydrusFile) -> Result<()>;
+    /// Tell the client re-inbox archived files.
+    async fn unarchive_files(&self, file: HydrusFile) -> Result<()>;
+    /// Generate hashes for an arbitrary file by providing a local path to the file.
+    async fn generate_hashes_for_path(&self, file: PathBuf) -> Result<HashResponse>;
+    /// Generate hashes for an arbitrary file by sending the file.
+    async fn generate_hashes_for_file(&self, file: PathBuf) -> Result<HashResponse>;
 }

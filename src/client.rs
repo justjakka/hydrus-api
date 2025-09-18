@@ -78,21 +78,19 @@ impl AccessManagement for HydrusClient {
         permissions: &[HydrusPermissions],
     ) -> Result<String> {
         let mut req_url = self.url.to_owned();
-        req_url.push_str("request_new_permissions?name=");
+        req_url.push_str("request_new_permissions");
 
-        req_url.push_str(name);
+        let mut request = self.client.get(req_url);
+        request = request.query(&[("name", &urlencoding::encode(&name))]);
 
         if permissions.is_empty() {
-            req_url.push_str("&permit_everything=true");
+            request = request.query(&[("permit_everything", "true")]);
         } else {
-            let json_string = &serde_json::to_string(&permissions)?;
-            req_url.push_str("&basic_permissions=");
-            req_url.push_str(&urlencoding::encode(json_string));
+            let json_string = serde_json::to_string(&permissions)?;
+            request = request.query(&[("basic_permissions", &urlencoding::encode(&json_string))]);
         };
 
-        Ok(self
-            .client
-            .get(req_url)
+        Ok(request
             .send()
             .await?
             .json::<HydrusResponse<String>>()
@@ -134,11 +132,11 @@ impl AccessManagement for HydrusClient {
 
     async fn get_service_name(&self, name: &str) -> Result<Service> {
         let mut req_url = self.url.to_owned();
-        req_url.push_str("get_service?service_name=");
-        req_url.push_str(&urlencoding::encode(name));
+        req_url.push_str("get_service");
+        let mut request = self.set_get_request_key(&req_url)?;
+        request = request.query(&[("service_name", &urlencoding::encode(name))]);
 
-        Ok(self
-            .set_get_request_key(&req_url)?
+        Ok(request
             .send()
             .await?
             .json::<HydrusResponse<Service>>()
@@ -148,11 +146,11 @@ impl AccessManagement for HydrusClient {
 
     async fn get_service_key(&self, key: &str) -> Result<Service> {
         let mut req_url = self.url.to_owned();
-        req_url.push_str("get_service?service_key=");
-        req_url.push_str(&urlencoding::encode(key));
+        req_url.push_str("get_service");
+        let mut request = self.set_get_request_key(&req_url)?;
+        request = request.query(&[("service_key", &urlencoding::encode(key))]);
 
-        Ok(self
-            .set_get_request_key(&req_url)?
+        Ok(request
             .send()
             .await?
             .json::<HydrusResponse<Service>>()
@@ -194,13 +192,15 @@ impl ImportingAndDeletingFiles for HydrusClient {
             ..Default::default()
         };
 
-        if let Some(file_domains) = domains {
-            match file_domains {
-                FileDomain::FileServiceKey(key) => form.file_service_key = Some(key),
-                FileDomain::FileServiceKeys(keys) => form.file_service_keys = Some(keys),
-                FileDomain::DeletedFileServiceKey(key) => form.deleted_file_service_key = Some(key),
+        if let Some(file_domain) = domains {
+            match file_domain {
+                FileDomain::FileServiceKey(key) => form.file_service_key = Some(key.to_string()),
+                FileDomain::FileServiceKeys(keys) => form.file_service_keys = Some(keys.to_owned()),
+                FileDomain::DeletedFileServiceKey(key) => {
+                    form.deleted_file_service_key = Some(key.to_string())
+                }
                 FileDomain::DeletedFileServiceKeys(keys) => {
-                    form.deleted_file_service_keys = Some(keys)
+                    form.deleted_file_service_keys = Some(keys.to_owned())
                 }
             }
         }
@@ -234,6 +234,194 @@ impl ImportingAndDeletingFiles for HydrusClient {
             .send()
             .await?
             .json::<AddFileResponse>()
+            .await?)
+    }
+
+    async fn delete_files(
+        &self,
+        file: HydrusFile,
+        domain: Option<FileDomain>,
+        reason: Option<String>,
+    ) -> Result<()> {
+        let mut form = FileRequest {
+            file,
+            reason,
+            ..Default::default()
+        };
+
+        if let Some(file_domain) = domain {
+            match file_domain {
+                FileDomain::FileServiceKey(key) => form.file_service_key = Some(key.to_string()),
+                FileDomain::FileServiceKeys(keys) => form.file_service_keys = Some(keys.to_owned()),
+                FileDomain::DeletedFileServiceKey(key) => {
+                    form.deleted_file_service_key = Some(key.to_string())
+                }
+                FileDomain::DeletedFileServiceKeys(keys) => {
+                    form.deleted_file_service_keys = Some(keys.to_owned())
+                }
+            }
+        }
+
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/delete_files");
+
+        let _ = self
+            .set_post_request_key(&req_url)?
+            .header("Content-Type", "application/json")
+            .json(&form)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn undelete_files(&self, file: HydrusFile, domain: Option<FileDomain>) -> Result<()> {
+        let mut form = FileRequest {
+            file,
+            ..Default::default()
+        };
+
+        if let Some(file_domain) = domain {
+            match file_domain {
+                FileDomain::FileServiceKey(key) => form.file_service_key = Some(key.to_string()),
+                FileDomain::FileServiceKeys(keys) => form.file_service_keys = Some(keys.to_owned()),
+                FileDomain::DeletedFileServiceKey(key) => {
+                    form.deleted_file_service_key = Some(key.to_string())
+                }
+                FileDomain::DeletedFileServiceKeys(keys) => {
+                    form.deleted_file_service_keys = Some(keys.to_owned())
+                }
+            }
+        }
+
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/undelete_files");
+
+        let _ = self
+            .set_post_request_key(&req_url)?
+            .header("Content-Type", "application/json")
+            .json(&form)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn clear_file_deletion_records(&self, file: HydrusFile) -> Result<()> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/clear_file_deletion_record");
+        let _ = self
+            .set_post_request_key(&req_url)?
+            .header("Content-Type", "application/json")
+            .json(&file)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn migrate_files(&self, file: HydrusFile, domain: FileDomain) -> Result<()> {
+        let mut form = FileRequest {
+            file,
+            ..Default::default()
+        };
+
+        match domain {
+            FileDomain::FileServiceKey(key) => form.file_service_key = Some(key.to_string()),
+            FileDomain::FileServiceKeys(keys) => form.file_service_keys = Some(keys.to_owned()),
+            FileDomain::DeletedFileServiceKey(key) => {
+                form.deleted_file_service_key = Some(key.to_string())
+            }
+            FileDomain::DeletedFileServiceKeys(keys) => {
+                form.deleted_file_service_keys = Some(keys.to_owned())
+            }
+        }
+
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/migrate_files");
+        let _ = self
+            .set_post_request_key(&req_url)?
+            .header("Content-Type", "application/json")
+            .json(&form)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn archive_files(&self, file: HydrusFile) -> Result<()> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/archive_files");
+
+        let form = FileRequest {
+            file,
+            ..Default::default()
+        };
+
+        let _ = self
+            .set_post_request_key(&req_url)?
+            .header("Content-Type", "application/json")
+            .json(&form)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn unarchive_files(&self, file: HydrusFile) -> Result<()> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/unarchive_files");
+
+        let form = FileRequest {
+            file,
+            ..Default::default()
+        };
+
+        let _ = self
+            .set_post_request_key(&req_url)?
+            .header("Content-Type", "application/json")
+            .json(&form)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn generate_hashes_for_path(&self, file: PathBuf) -> Result<HashResponse> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/generate_hashes");
+
+        let form = AddFileRequest {
+            path: file.to_owned(),
+            ..Default::default()
+        };
+
+        Ok(self
+            .set_post_request_key(&req_url)?
+            .header("Content-Type", "application/json")
+            .json(&form)
+            .send()
+            .await?
+            .json::<HashResponse>()
+            .await?)
+    }
+
+    async fn generate_hashes_for_file(&self, file: PathBuf) -> Result<HashResponse> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_files/generate_hashes");
+
+        let file = tokio::fs::File::open(file).await?;
+
+        let stream = FramedRead::new(file, BytesCodec::new());
+        let body = Body::wrap_stream(stream);
+
+        Ok(self
+            .set_post_request_key(&req_url)?
+            .header("Content-Type", "application/octet-stream")
+            .body(body)
+            .send()
+            .await?
+            .json::<HashResponse>()
             .await?)
     }
 }
