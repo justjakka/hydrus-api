@@ -1,7 +1,10 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use thiserror::Error;
 
+/// various errors
 #[derive(Error, Debug)]
 pub enum HydrusError {
     #[error("failed to connect to Hydrus")]
@@ -32,6 +35,7 @@ impl From<reqwest::Error> for HydrusError {
     }
 }
 
+/// hydrus permissions
 #[derive(PartialEq, Debug, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum HydrusPermissions {
@@ -52,6 +56,7 @@ pub enum HydrusPermissions {
     Null = 255,
 }
 
+/// hydrus key information struct
 #[derive(Deserialize, Debug)]
 pub struct KeyInfo {
     pub name: String,
@@ -60,6 +65,7 @@ pub struct KeyInfo {
     pub human_permissions: String,
 }
 
+/// hydrus service type struct
 #[derive(PartialEq, Debug, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum ServiceType {
@@ -85,6 +91,7 @@ pub enum ServiceType {
     Null = 255,
 }
 
+/// hydrus service struct
 #[derive(Deserialize, Debug)]
 pub struct Service {
     pub name: String,
@@ -100,6 +107,7 @@ pub struct Service {
     pub max_stars: Option<u8>,
 }
 
+/// hydrus file domains
 pub enum FileDomain {
     FileServiceKey(String),
     FileServiceKeys(Vec<String>),
@@ -107,9 +115,10 @@ pub enum FileDomain {
     DeletedFileServiceKeys(Vec<String>),
 }
 
+/// payload for importing a file via providing a local path
 #[derive(Serialize, Debug, Default)]
 pub struct AddFileRequest {
-    pub path: String,
+    pub path: PathBuf,
     #[serde(skip)]
     pub delete_after_successful_import: Option<bool>,
     #[serde(skip)]
@@ -121,24 +130,24 @@ pub struct AddFileRequest {
     #[serde(skip)]
     pub deleted_file_service_keys: Option<Vec<String>>,
 }
-
+/// file importing status
 #[derive(PartialEq, Debug, Clone, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
-pub enum FileAddStatus {
+pub enum AddFileStatus {
     SuccessfulImport = 1,
     AlreadyInDatabase,
     PreviouslyDeleted,
     FailedToImport,
     FileVetoed = 7,
 }
-
+/// file importing api response
 #[derive(Deserialize)]
-pub struct FileAddResponse {
-    pub status: FileAddStatus,
+pub struct AddFileResponse {
+    pub status: AddFileStatus,
     pub hash: String,
     pub note: String,
 }
-
+/// payload for deleting a file
 #[derive(Serialize, Debug, Default)]
 pub struct DeleteFileRequest {
     pub path: String,

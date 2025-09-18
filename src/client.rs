@@ -9,6 +9,7 @@ use crate::{traits::*, types::*};
 
 type Result<T> = std::result::Result<T, HydrusError>;
 
+/// hydrus client
 pub struct HydrusClient {
     client: reqwest::Client,
     apikey: Option<String>,
@@ -17,6 +18,7 @@ pub struct HydrusClient {
 }
 
 impl HydrusClient {
+    /// create a new hydurs client object. requires a url to hydrus API endpoint
     pub fn new(url: &str) -> HydrusClient {
         HydrusClient {
             client: reqwest::Client::new(),
@@ -25,11 +27,11 @@ impl HydrusClient {
             url: url.to_string(),
         }
     }
-
+    /// set an api key
     pub fn set_api_key(&mut self, key: &str) {
         self.apikey = Some(key.to_owned())
     }
-
+    /// set a session key
     pub fn set_session_key(&mut self, key: &str) {
         self.sessionkey = Some(key.to_owned())
     }
@@ -182,10 +184,10 @@ impl AccessManagement for HydrusClient {
 impl ImportingAndDeletingFiles for HydrusClient {
     async fn add_file_via_path(
         &self,
-        path: &str,
+        path: PathBuf,
         delete: Option<bool>,
         domains: Option<FileDomain>,
-    ) -> Result<FileAddResponse> {
+    ) -> Result<AddFileResponse> {
         let mut form = AddFileRequest {
             path: path.to_owned(),
             delete_after_successful_import: delete,
@@ -212,11 +214,11 @@ impl ImportingAndDeletingFiles for HydrusClient {
             .json(&form)
             .send()
             .await?
-            .json::<FileAddResponse>()
+            .json::<AddFileResponse>()
             .await?)
     }
 
-    async fn add_file_via_file(&self, file: PathBuf) -> Result<FileAddResponse> {
+    async fn add_file_via_file(&self, file: PathBuf) -> Result<AddFileResponse> {
         let mut req_url = self.url.to_owned();
         req_url.push_str("add_files/add_file");
 
@@ -231,7 +233,7 @@ impl ImportingAndDeletingFiles for HydrusClient {
             .body(body)
             .send()
             .await?
-            .json::<FileAddResponse>()
+            .json::<AddFileResponse>()
             .await?)
     }
 }
