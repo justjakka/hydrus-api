@@ -60,3 +60,12 @@ pub trait ImportingAndDeletingFiles {
     /// Generate hashes for an arbitrary file by sending the file.
     async fn generate_hashes_for_file(&self, file: PathBuf) -> Result<HashResponse>;
 }
+
+#[async_trait]
+pub trait ImportingAndEditingUrls {
+    async fn get_url_files(
+        &self,
+        url: &str,
+        doublecheck_file_system: Option<bool>,
+    ) -> Result<FilesUrlResponse>;
+}

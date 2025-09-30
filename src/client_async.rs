@@ -5,7 +5,7 @@ use reqwest::{Body, RequestBuilder};
 use serde::Deserialize;
 use tokio_util::codec::{BytesCodec, FramedRead};
 
-use crate::{traits::*, types::*};
+use crate::{traits_async::*, types::*};
 
 type Result<T> = std::result::Result<T, HydrusError>;
 
@@ -81,7 +81,7 @@ impl AccessManagement for HydrusClient {
         req_url.push_str("request_new_permissions");
 
         let mut request = self.client.get(req_url);
-        request = request.query(&[("name", &urlencoding::encode(&name))]);
+        request = request.query(&[("name", &urlencoding::encode(name))]);
 
         if permissions.is_empty() {
             request = request.query(&[("permit_everything", "true")]);
@@ -423,5 +423,27 @@ impl ImportingAndDeletingFiles for HydrusClient {
             .await?
             .json::<HashResponse>()
             .await?)
+    }
+}
+
+#[async_trait]
+impl ImportingAndEditingUrls for HydrusClient {
+    async fn get_url_files(
+        &self,
+        url: &str,
+        doublecheck_file_system: Option<bool>,
+    ) -> Result<FilesUrlResponse> {
+        let mut req_url = self.url.to_owned();
+        req_url.push_str("add_urls/get_url_files");
+
+        let mut request = self.set_get_request_key(&req_url)?;
+
+        request = request.query(&[("url", url)]);
+
+        if let Some(doublecheck) = doublecheck_file_system {
+            request = request.query(&[("doublecheck_file_system", doublecheck)]);
+        }
+
+        Ok(request.send().await?.json::<FilesUrlResponse>().await?)
     }
 }

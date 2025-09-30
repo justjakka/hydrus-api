@@ -226,3 +226,24 @@ pub struct HashResponse {
     #[serde(default)]
     pub pixel_hash: Option<String>,
 }
+
+#[derive(Debug, Deserialize_repr)]
+#[repr(u8)]
+pub enum UrlStatus {
+    NotInDatabase = 0,
+    AlreadyInDatabase = 2,
+    PreviouslyDeleted,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UrlFileStatus {
+    pub status: UrlStatus,
+    pub hash: String,
+    pub note: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FilesUrlResponse {
+    pub normalised_url: String,
+    pub url_file_statuses: Vec<UrlFileStatus>,
+}
