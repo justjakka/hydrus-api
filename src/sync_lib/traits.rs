@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use crate::sync_lib::types::*;
+use crate::sync_lib::HydrusError;
+use crate::types::*;
 
 type Result<T> = std::result::Result<T, HydrusError>;
 
