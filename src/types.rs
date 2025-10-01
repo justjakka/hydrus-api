@@ -186,6 +186,7 @@ impl Serialize for FileRequest {
     }
 }
 
+/// object for per-item hash response
 #[derive(Debug, Deserialize)]
 pub struct HashResponse {
     pub hash: String,
@@ -195,6 +196,7 @@ pub struct HashResponse {
     pub pixel_hash: Option<String>,
 }
 
+/// url status in hydrus database
 #[derive(Debug, Deserialize_repr)]
 #[repr(u8)]
 pub enum UrlStatus {
@@ -203,6 +205,7 @@ pub enum UrlStatus {
     PreviouslyDeleted,
 }
 
+/// per-url response object
 #[derive(Debug, Deserialize)]
 pub struct UrlFileStatus {
     pub status: UrlStatus,
@@ -210,6 +213,7 @@ pub struct UrlFileStatus {
     pub note: String,
 }
 
+/// hydrus response after querying for files url status
 #[derive(Debug, Deserialize)]
 pub struct FilesUrlResponse {
     pub normalised_url: String,

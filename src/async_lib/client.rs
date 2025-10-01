@@ -20,13 +20,17 @@ pub struct HydrusClient {
 }
 
 impl HydrusClient {
-    /// create a new hydurs client object. requires a url to hydrus API endpoint
+    /// create a new hydrus client object. requires a hydrus API endpoint url
     pub fn new(url: &str) -> HydrusClient {
+        let mut url = url.to_string();
+        if !url.ends_with('/') {
+            url.push('/');
+        }
         HydrusClient {
             client: reqwest::Client::new(),
             apikey: None,
             sessionkey: None,
-            url: url.to_string(),
+            url,
         }
     }
     /// set an api key

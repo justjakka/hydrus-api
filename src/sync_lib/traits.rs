@@ -59,7 +59,9 @@ pub trait ImportingAndDeletingFiles {
     fn generate_hashes_for_file(&self, file: PathBuf) -> Result<HashResponse>;
 }
 
+/// Trait for importing and editing file urls.
 pub trait ImportingAndEditingUrls {
+    /// Ask the client about an URL's files.
     fn get_url_files(
         &self,
         url: &str,
