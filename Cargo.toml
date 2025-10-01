@@ -19,5 +19,6 @@ ureq = { version = "3.1.2", features = ["json"], optional = true }
 urlencoding = "2.1.3"
 
 [features]
+deafult = ["sync"]
 async = ["dep:async-trait", "dep:reqwest", "dep:tokio", "dep:tokio-util"]
 sync = ["dep:ureq"]

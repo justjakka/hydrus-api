@@ -5,7 +5,7 @@ use reqwest::{Body, RequestBuilder};
 use serde::Deserialize;
 use tokio_util::codec::{BytesCodec, FramedRead};
 
-use crate::{traits_async::*, types::*};
+use crate::async_lib::{traits::*, types::*};
 
 type Result<T> = std::result::Result<T, HydrusError>;
 

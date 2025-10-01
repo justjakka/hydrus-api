@@ -1,13 +1,8 @@
-//! crate with hydrus client and traits necessary for accesing hydrus API
+//! crate with hydrus client and traits necessary for fully using hydrus API
 
-/// this crate's hydrus client async implementation
+/// async traits, types and client implementation
 #[cfg(feature = "async")]
-pub mod client_async;
-/// traits for accessing hydrus API
-#[cfg(feature = "async")]
-pub mod traits_async;
-/// various objects for de/serializing requests
-pub mod types;
-
-#[cfg(test)]
-mod tests;
+pub mod async_lib;
+/// sync traits, types and client implementation
+#[cfg(feature = "sync")]
+pub mod sync_lib;
