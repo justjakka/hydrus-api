@@ -1,5 +1,5 @@
-use hydrus_api_rs::sync_lib::client::HydrusClient;
-use hydrus_api_rs::sync_lib::traits::*;
+use hydrus_api::sync_lib::client::HydrusClient;
+use hydrus_api::sync_lib::traits::*;
 use std::path::PathBuf;
 
 fn init_client() -> HydrusClient {
