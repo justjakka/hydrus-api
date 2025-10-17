@@ -35,11 +35,11 @@ impl HydrusClient {
         }
     }
     /// set an api key
-    pub fn set_api_key(&mut self, key: &str) {
+    pub fn set_api_key(&mut self, key: String) {
         self.apikey = Some(key.to_owned())
     }
     /// set a session key
-    pub fn set_session_key(&mut self, key: &str) {
+    pub fn set_session_key(&mut self, key: String) {
         self.sessionkey = Some(key.to_owned())
     }
 

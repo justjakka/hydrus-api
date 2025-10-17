@@ -85,7 +85,7 @@ pub enum FileDomain {
 
 /// Payload for importing a file via providing a local path
 #[derive(Serialize, Debug, Default)]
-pub struct AddFileRequest {
+pub(crate) struct AddFileRequest {
     pub path: PathBuf,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub delete_after_successful_import: Option<bool>,
@@ -137,7 +137,7 @@ impl Default for HydrusFile {
 
 /// Payload for various file-related requests
 #[derive(Debug, Default)]
-pub struct FileRequest {
+pub(crate) struct FileRequest {
     pub file: HydrusFile,
     pub delete_after_successful_import: Option<bool>,
     pub file_service_key: Option<String>,
@@ -164,6 +164,10 @@ impl Serialize for FileRequest {
 
         if let Some(val) = &self.reason {
             map.serialize_entry("reason", &val)?;
+        }
+
+        if let Some(val) = &self.delete_after_successful_import {
+            map.serialize_entry("delete_after_successful_import", val)?;
         }
 
         if let Some(val) = &self.file_service_key {
