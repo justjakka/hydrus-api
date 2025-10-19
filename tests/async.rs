@@ -35,7 +35,7 @@ async fn test_get_services() {
 #[tokio::test]
 async fn add_and_delete_file() {
     let client = init_client();
-    let path = PathBuf::from("./assets/img.png").canonicalize().unwrap();
+    let path = PathBuf::from("./assets/img1.png").canonicalize().unwrap();
     let file = client
         .add_file_via_path(path.clone(), None, None)
         .await
