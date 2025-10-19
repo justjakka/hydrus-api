@@ -136,58 +136,21 @@ impl Default for HydrusFile {
 }
 
 /// Payload for various file-related requests
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub(crate) struct FileRequest {
     pub file: HydrusFile,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub delete_after_successful_import: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub file_service_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub file_service_keys: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deleted_file_service_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deleted_file_service_keys: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
-}
-
-impl Serialize for FileRequest {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeMap;
-        let mut map = serializer.serialize_map(Some(1))?;
-
-        match &self.file {
-            HydrusFile::FileId(id) => map.serialize_entry("file_id", &id)?,
-            HydrusFile::FileIds(ids) => map.serialize_entry("file_ids", &ids)?,
-            HydrusFile::Hash(hash) => map.serialize_entry("hash", &hash)?,
-            HydrusFile::Hashes(hashes) => map.serialize_entry("hashes", &hashes)?,
-        }
-
-        if let Some(val) = &self.reason {
-            map.serialize_entry("reason", &val)?;
-        }
-
-        if let Some(val) = &self.delete_after_successful_import {
-            map.serialize_entry("delete_after_successful_import", val)?;
-        }
-
-        if let Some(val) = &self.file_service_key {
-            map.serialize_entry("file_service_key", &val)?;
-        }
-
-        if let Some(val) = &self.file_service_keys {
-            map.serialize_entry("file_service_keys", &val)?;
-        }
-
-        if let Some(val) = &self.deleted_file_service_key {
-            map.serialize_entry("deleted_file_service_key", &val)?;
-        }
-
-        if let Some(val) = &self.deleted_file_service_keys {
-            map.serialize_entry("deleted_file_service_keys", &val)?;
-        }
-
-        map.end()
-    }
 }
 
 /// object for per-item hash response
