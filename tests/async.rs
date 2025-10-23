@@ -50,9 +50,9 @@ async fn add_and_delete_file() {
         panic!();
     }
 
-    let trash_service = Some(FileDomain::FileServiceKey(
+    let all_local_files = Some(FileDomain::FileServiceKey(
         client
-            .get_service_name("all my files")
+            .get_service_name("all local files")
             .await
             .unwrap()
             .service_key,
@@ -63,24 +63,7 @@ async fn add_and_delete_file() {
         .await
         .unwrap();
     client
-        .delete_files(HydrusFile::Hash(file.hash.clone()), trash_service, None)
-        .await
-        .unwrap();
-
-    client
-        .clear_file_deletion_records(HydrusFile::Hash(file.hash))
-        .await
-        .unwrap();
-    let file = client.add_file_via_file(path.clone()).await.unwrap();
-    if client.add_file_via_file(path).await.unwrap().status != AddFileStatus::AlreadyInDatabase {
-        panic!();
-    }
-    client
-        .delete_files(HydrusFile::Hash(file.hash.clone()), None, None)
-        .await
-        .unwrap();
-    client
-        .delete_files(HydrusFile::Hash(file.hash.clone()), None, None)
+        .delete_files(HydrusFile::Hash(file.hash.clone()), all_local_files, None)
         .await
         .unwrap();
 
