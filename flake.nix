@@ -24,6 +24,8 @@
           with pkgs;
           mkShell {
             buildInputs = [
+              glibc
+              gcc
               lldb
               openssl
               pkg-config
